@@ -1,0 +1,9 @@
+body {
+    background-color: darkseagreen;
+}
+
+button {
+    background-color: deeppink;
+    border: 2px solid black;
+    font-weight: bold;
+}
