@@ -1,0 +1,191 @@
+<html>
+    <body>
+    <h2 id="title"></h2>
+    <svg id="Kpneu"></svg>
+    
+    </body>
+<script src="https://d3js.org/d3.v5.min.js"></script>
+<script>
+    
+var recalculateScales = function(drugs,lengths)
+{
+    var xScale = d3.scaleBand()
+        .domain(drugs.map(function(entry)
+                              {return entry.Antibiotic; }))
+        .range([0,lengths.graph.width])
+        .paddingInner(.5)
+    
+    var yScale = d3.scaleLinear()
+        .domain([0,
+                d3.max(drugs,function(entry)
+                       { return entry.NumberResistant; })
+                ])
+        .range([lengths.graph.height,0])
+    
+    return { xScale:xScale,yScale:yScale}
+}    
+    
+var updateGraph = function(target,drugs,lengths)
+{
+    
+    console.log("updating graph");
+    
+    var scales = recalculateScales(drugs,lengths);
+    var xScale = scales.xScale;
+    var yScale = scales.yScale;
+    
+    updateTitleYear(year.year);
+    updateAxes(target,xScale,yScale);
+    
+    //JOIN - Rebind the data
+    var rects = d3.select(target)
+        .select(".graph")
+        .selectAll("rect")
+        .data(drugs,function(entry)
+        {    //Keyed data
+            return entry.name;
+        })
+
+    //ENTER - add new stuff
+    rects.enter()
+        .append("rect");
+    
+    //EXIT - remove old stuff
+
+    rects.exit()
+        .remove();
+    
+    //UPDATE - REDECORATE
+
+    //have to re select everything
+    d3.select(target)
+        .select(".graph")
+        .selectAll("rect")
+        .transition()
+        .duration(dur)
+        .attr("x",function(entry)
+        {
+            return xScale(entry.name);
+        })
+        .attr("y",function(entry)
+        {
+            return yScale(entry.amt);
+        })
+        .attr("width",xScale.bandwidth)
+        .attr("height",function(entry) 
+        { 
+            return lengths.graph.height - yScale(entry.amt);
+        })
+        .attr("rx",2)
+        .attr("ry",2)
+        .attr("fill","green")
+}
+
+
+var updateTitleYear = function(year)
+{
+    d3.select("#title")
+        .text("Klebsiella pneumoniae Resistance in "+year);
+}
+   
+
+var createLabels = function(lengths,target)
+{
+    var labels = d3.select(target)
+        .append("g")
+        .classed("labels",true)
+        
+    labels.append("text")
+        .attr("id","graphtitle")
+        .text("Resistance in 2018")
+        .classed("title",true)
+        .attr("text-anchor","middle")
+        .attr("x",lengths.margins.left+(lengths.graph.width/2))
+        .attr("y",lengths.margins.top-5)
+    
+    
+    labels.append("g")
+        .attr("transform","translate(20,"+ 
+              (lengths.margins.top+(lengths.graph.height/2))+")")
+        .append("text")
+        .text("Number of cases")
+        .classed("label",true)
+        .attr("text-anchor","middle")
+        .attr("transform","rotate(90)")
+    
+}
+
+var initAxes =  function(lengths, target,
+                           xScale,yScale)
+{
+    var axes = d3.select(target)
+        .append("g")
+        .classed("class","axis");
+    
+    axes.append("g")
+        .attr("id","xAxis")
+        .attr("transform","translate("+lengths.margins.left+","
+             +(lengths.margins.top+lengths.graph.height)+")")
+        
+    
+    axes.append("g")
+        .attr("id","yAxis")
+        .attr("transform","translate("+(lengths.margins.left-5)+","
+             +(lengths.margins.top)+")")
+}
+    
+var initGraph = function(target,drugs)
+{
+    var screen = {width:500, height:400};
+    
+    var margins = {top:25,bottom:45,left:75,right:40};
+    
+    var graph = 
+    {
+        width:screen.width-margins.left-margins.right,
+        height:screen.height-margins.top-margins.bottom,
+    }
+    
+    var lengths = {
+        screen:screen,
+        margins:margins,
+        graph:graph
+    }
+    
+    //Size of screen
+    d3.select(target)
+        .attr("width",screen.width)
+        .attr("height",screen.height)
+    
+    //Group for graph
+    var g = d3.select(target)
+        .append("g")
+        .classed("graph",true)
+        .attr("transform","translate("+margins.left+","+
+             margins.top+")");
+        
+    
+    createLabels(lengths,target);
+    initAxes(lengths,target);
+    setButtons(target,years,0,lengths);
+
+    updateGraph(target,years[0],lengths);
+    //create the axis and labels
+    
+}
+
+
+var practicePromise = d3.csv("KlebsiellaPneumoniae.csv");
+
+practicePromise.then(function(drug)
+{
+    console.log("drugs",drugs);
+    initGraph("#Kpneu svg",drugs);
+},
+function(err)
+{
+   console.log("Error Loading data:",err);
+});
+    
+    </script>
+</html>
