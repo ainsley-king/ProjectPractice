@@ -1,145 +1,73 @@
 <html>
     <body>
-    <h2 id="title"></h2>
-    <svg id="Kpneu"></svg>
+    <h2 id="banner"></h2>
+    <div>
+    <button id="final">Final</button>
+    <button id="hw">Homework</button>
+    <button id="test">Test</button>
+    <button id="quiz">Quiz</button>
+    </div>
+    <svg id="scatter"></svg>
     
     </body>
+<link rel="stylesheet" type="text/css" href="style.css"/>
 <script src="https://d3js.org/d3.v5.min.js"></script>
 <script>
     
-var recalculateScales = function(drugs,lengths)
+var dur = 1000
+
+var getMeanGrade = function(entries)
 {
-    var xScale = d3.scaleBand()
-        .domain(drugs.map(function(entry)
-                              {return entry.Antibiotic; }))
-        .range([0,lengths.graph.width])
-        .paddingInner(.5)
-    
-    var yScale = d3.scaleLinear()
-        .domain([0,
-                d3.max(drugs,function(entry)
-                       { return entry.NumberResistant; })
-                ])
-        .range([lengths.graph.height,0])
-    
-    return { xScale:xScale,yScale:yScale}
-}    
-    
-var updateGraph = function(target,drugs,lengths)
-{
-    
-    console.log("updating graph");
-    
-    var scales = recalculateScales(drugs,lengths);
-    var xScale = scales.xScale;
-    var yScale = scales.yScale;
-    
-    updateTitleYear(year.year);
-    updateAxes(target,xScale,yScale);
-    
-    //JOIN - Rebind the data
-    var rects = d3.select(target)
-        .select(".graph")
-        .selectAll("rect")
-        .data(drugs,function(entry)
-        {    //Keyed data
-            return entry.name;
-        })
-
-    //ENTER - add new stuff
-    rects.enter()
-        .append("rect");
-    
-    //EXIT - remove old stuff
-
-    rects.exit()
-        .remove();
-    
-    //UPDATE - REDECORATE
-
-    //have to re select everything
-    d3.select(target)
-        .select(".graph")
-        .selectAll("rect")
-        .transition()
-        .duration(dur)
-        .attr("x",function(entry)
+    return d3.mean(entries,function(entry)
         {
-            return xScale(entry.name);
+            return entry.grade;
         })
-        .attr("y",function(entry)
-        {
-            return yScale(entry.amt);
-        })
-        .attr("width",xScale.bandwidth)
-        .attr("height",function(entry) 
-        { 
-            return lengths.graph.height - yScale(entry.amt);
-        })
-        .attr("rx",2)
-        .attr("ry",2)
-        .attr("fill","green")
 }
 
 
-var updateTitleYear = function(year)
-{
-    d3.select("#title")
-        .text("Klebsiella pneumoniae Resistance in "+year);
-}
-   
-
-var createLabels = function(lengths,target)
-{
-    var labels = d3.select(target)
-        .append("g")
-        .classed("labels",true)
-        
-    labels.append("text")
-        .attr("id","graphtitle")
-        .text("Resistance in 2018")
-        .classed("title",true)
-        .attr("text-anchor","middle")
-        .attr("x",lengths.margins.left+(lengths.graph.width/2))
-        .attr("y",lengths.margins.top-5)
-    
-    
-    labels.append("g")
-        .attr("transform","translate(20,"+ 
-              (lengths.margins.top+(lengths.graph.height/2))+")")
-        .append("text")
-        .text("Number of cases")
-        .classed("label",true)
-        .attr("text-anchor","middle")
-        .attr("transform","rotate(90)")
-    
-}
-
-var initAxes =  function(lengths, target,
-                           xScale,yScale)
-{
+var initAxes = function(lengths,target,xScale,yScale)
+{    
     var axes = d3.select(target)
         .append("g")
-        .classed("class","axis");
+        .classed("class","axis")
     
     axes.append("g")
         .attr("id","xAxis")
         .attr("transform","translate("+lengths.margins.left+","
              +(lengths.margins.top+lengths.graph.height)+")")
-        
     
     axes.append("g")
         .attr("id","yAxis")
-        .attr("transform","translate("+(lengths.margins.left-5)+","
+        .attr("transform","translate("+lengths.margins.left+","
              +(lengths.margins.top)+")")
 }
-    
-var initGraph = function(target,drugs)
+
+var updateAxes = function(target,xScale,yScale)
 {
-    var screen = {width:500, height:400};
+   var xAxis = d3.axisBottom(xScale);
+    var yAxis = d3.axisLeft(yScale); 
     
-    var margins = {top:25,bottom:45,left:75,right:40};
+    d3.select("#xAxis")
+        .transition()
+        .duration(dur)
+        .call(xAxis)
     
+    d3.select("#yAxis")
+        .transition()
+        .duration(dur)
+        .call(yAxis)
+}
+
+
+var initGraph = function(target,students)
+{
+    //the size of the screen
+    var screen = {width:3000, height:400};
+    
+    //how much space will be on each side of the graph
+    var margins = {top:15,bottom:40,left:70,right:15};
+    
+    //generated how much space the graph will take up
     var graph = 
     {
         width:screen.width-margins.left-margins.right,
@@ -151,41 +79,178 @@ var initGraph = function(target,drugs)
         margins:margins,
         graph:graph
     }
-    
-    //Size of screen
+
+    //set the screen size
     d3.select(target)
         .attr("width",screen.width)
         .attr("height",screen.height)
     
-    //Group for graph
+    //create a group for the graph
     var g = d3.select(target)
         .append("g")
         .classed("graph",true)
         .attr("transform","translate("+margins.left+","+
              margins.top+")");
         
+    //create scales for all of the dimensions
     
-    createLabels(lengths,target);
-    initAxes(lengths,target);
-    setButtons(target,years,0,lengths);
+    
+    var xScale = d3.scaleBand()
+        .domain(students.map(function(entry)
+                              {return entry.picture; }))
+        .range([0,lengths.graph.width])
+        .paddingInner(.5)
+           
+    var yScale = d3.scaleLinear()
+        .domain([0,100])
+        .range([graph.height,0])
+  
+    
+    
+    initAxes(lengths,target,xScale,yScale);
+    
+    initButtons(students,target,xScale,yScale);
+    
+    setBanner("Click buttons to display graphs.");
+    
+    
 
-    updateGraph(target,years[0],lengths);
-    //create the axis and labels
+}
+
+
+
+var updateGraph = function(students,target,lengths,xScale,yScale,yProp)
+{
+    
+    //the size of the screen
+    var screen = {width:500, height:400};
+    
+    //how much space will be on each side of the graph
+    var margins = {top:15,bottom:40,left:70,right:15};
+    
+    //generated how much space the graph will take up
+    var graph = 
+    {
+        width:screen.width-margins.left-margins.right,
+        height:screen.height-margins.top-margins.bottom,
+    }
+    
+    var lengths = {
+        screen:screen,
+        margins:margins,
+        graph:graph
+    }
+
+    
+    console.log("Updating graph.");
+    
+    updateAxes(target,xScale,yScale);
+    
+    setBanner("MEAN " +yProp.toUpperCase()+ " GRADES");
+    
+    //Join
+    var rectangles = d3.select(target)
+        .select(".graph")
+        .selectAll("rect")
+        .data(students, function(entry){return entry.grade;})
+    
+    //Enter
+    rectangles.enter()
+        .append("rect");
+    
+    //Exit
+    rectangles.exit()
+        .remove();
+    
+    //Update
+    
+    //reselect
+    d3.select(target)
+        .select(".graph")
+        .selectAll("rect")
+        .transition()
+        .duration(dur)
+        .attr("x",function(entry)
+        {
+        //since the penguins don't have names, I used the picure title in place of that. I made the graph really wide to try and accomodte that.
+            return xScale(entry.picture);
+        })
+        .attr("y",function(student)
+              {
+            return yScale(getMeanGrade(student[yProp]));    
+        })
+        .attr("width",70)
+        .attr("height",function(student) 
+        { 
+            return lengths.graph.height - yScale(getMeanGrade(student[yProp]));
+        })
+        .attr("rx",2)
+        .attr("ry",2)
+        .attr("fill","deeppink")
+        .attr("stroke","black");
+}
+
+var initButtons = function(students,target,xScale,yScale)
+{
+    
+    d3.select("#hw")
+    .on("click",function()
+    {
+        var yScale = d3.scaleLinear()
+        .domain([0,50])
+        .range([345,0]);
+        
+        updateGraph(students,target,length,xScale,yScale,"homework");
+    })
+    
+    d3.select("#test")
+    .on("click",function()
+    {
+        
+        updateGraph(students,target,length,xScale,yScale,"test");
+    })
+    
+    d3.select("#final")
+    .on("click",function()
+    {
+        updateGraph(students,target,length,xScale,yScale,"final");
+    })
+    
+    d3.select("#quiz")
+    .on("click",function()
+    {
+        var yScale = d3.scaleLinear()
+        .domain([0,10])
+        .range([345,0]);
+        
+        updateGraph(students,target,length,xScale,yScale,"quizes");
+    })
+    
+}
+
+var setBanner = function(msg)
+{
+    d3.select("#banner")
+        .text(msg);
     
 }
 
 
-var practicePromise = d3.csv("KlebsiellaPneumoniae.csv");
 
-practicePromise.then(function(drug)
+
+var penguinPromise = d3.json("classData.json");
+
+penguinPromise.then(function(penguins)
 {
-    console.log("drugs",drugs);
-    initGraph("#Kpneu svg",drugs);
+    console.log("class data",penguins);
+   initGraph("#scatter",penguins);
+   
 },
-function(err)
+function(Error)
 {
-   console.log("Error Loading data:",err);
+   console.log("Error Loading data:",Error);
 });
+
     
     </script>
 </html>
